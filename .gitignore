@@ -1,0 +1,6 @@
+myenv/
+__pycache__/
+unsloth_compiled_cache/
+.env
+ThomasTheMaker/
+outputs/
