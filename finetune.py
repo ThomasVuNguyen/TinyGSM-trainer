@@ -96,6 +96,7 @@ OUTPUT_DIR = training_config['output_dir']
 REPORT_TO = training_config['report_to']
 OPTIM = training_config['optim']
 LOGGING_STEPS = training_config['logging_steps']
+SAVE_STEPS = training_config.get('save_steps', 500)  # Default to 500 if not specified
 
 # Inference Configuration
 MAX_NEW_TOKENS = inference_config['max_new_tokens']
@@ -343,6 +344,7 @@ training_args = {
     "warmup_steps": WARMUP_STEPS,
     "learning_rate": LEARNING_RATE,
     "logging_steps": LOGGING_STEPS,
+    "save_steps": SAVE_STEPS,
     "optim": OPTIM,
     "weight_decay": WEIGHT_DECAY,
     "lr_scheduler_type": LR_SCHEDULER_TYPE,
@@ -395,7 +397,7 @@ print(f"{start_gpu_memory} GB of memory reserved.")
 
 """Let's train the model! To resume a training run, set `trainer.train(resume_from_checkpoint = True)`"""
 
-trainer_stats = trainer.train()
+trainer_stats = trainer.train(resume_from_checkpoint=True)
 
 # @title Show final memory and time stats
 used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
