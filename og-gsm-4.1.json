@@ -1,6 +1,6 @@
 {
     "model_config": {
-      "hub_model_name": "ThomasTheMaker/gm3-270m-tinygsm",
+      "hub_model_name": "ThomasTheMaker/gm3-270m-tinygsm-gpt41",
       "base_model_name": "unsloth/gemma-3-270m-it",
       "max_seq_length": 2048,
       "load_in_4bit": false,
@@ -8,8 +8,8 @@
       "full_finetuning": true
     },
     "dataset_config": {
-      "dataset_name": "TinyGSM/TinyGSM",
-      "dataset_split": "train[:11000000]",
+      "dataset_name": "ThomasTheMaker/TinyGSM-gpt4.1",
+      "dataset_split": "train[:178000]",
       "chat_template": "gemma3"
     },
     "lora_config": {

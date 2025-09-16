@@ -286,8 +286,8 @@ def convert_to_chatml(example):
     return {
         "conversations": [
             {"role": "system", "content": ""},
-            {"role": "user", "content": example["question"]},
-            {"role": "assistant", "content": example["code"]}
+            {"role": "user", "content": example["user"]},
+            {"role": "assistant", "content": example["assistant"]}
         ]
     }
 
