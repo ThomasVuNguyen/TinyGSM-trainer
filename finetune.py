@@ -5,6 +5,7 @@ import csv
 import json
 import sys
 import argparse
+import glob
 from datetime import datetime
 from transformers import TrainerCallback
 
@@ -397,7 +398,16 @@ print(f"{start_gpu_memory} GB of memory reserved.")
 
 """Let's train the model! To resume a training run, set `trainer.train(resume_from_checkpoint = True)`"""
 
-trainer_stats = trainer.train(resume_from_checkpoint=True)
+# Check if there's a checkpoint to resume from
+checkpoint_dirs = glob.glob(f"{OUTPUT_DIR}/checkpoint-*")
+if checkpoint_dirs:
+    # Sort by checkpoint number and get the latest one
+    latest_checkpoint = sorted(checkpoint_dirs, key=lambda x: int(x.split('-')[-1]))[-1]
+    print(f"Resuming training from checkpoint: {latest_checkpoint}")
+    trainer_stats = trainer.train(resume_from_checkpoint=latest_checkpoint)
+else:
+    print("No checkpoint found, starting fresh training")
+    trainer_stats = trainer.train(resume_from_checkpoint=False)
 
 # @title Show final memory and time stats
 used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
