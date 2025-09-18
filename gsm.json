@@ -1,0 +1,67 @@
+{
+    "model_config": {
+      "hub_model_name": "ThomasTheMaker/gm3-270m-TinyGSM-llama31-8b",
+      "base_model_name": "unsloth/gemma-3-270m-it",
+      "max_seq_length": 2048,
+      "load_in_4bit": false,
+      "load_in_8bit": false,
+      "full_finetuning": true
+    },
+    "dataset_config": {
+      "dataset_name": "ThomasTheMaker/TinyGSM-llama3.1-8b",
+      "dataset_split": "train[:11000000]",
+      "chat_template": "gemma3"
+    },
+    "lora_config": {
+      "r": 256,
+      "alpha_multiplier": 2,
+      "dropout": 0.1,
+      "bias": "none",
+      "use_gradient_checkpointing": false,
+      "random_state": 3407,
+      "use_rslora": true,
+      "loftq_config": null,
+      "target_modules": [
+        "q_proj",
+        "k_proj", 
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ]
+    },
+    "training_config": {
+      "per_device_train_batch_size": 16,
+      "gradient_accumulation_steps": 4,
+      "warmup_steps": 10,
+      "max_steps": -1,
+      "num_train_epochs": 1,
+      "learning_rate": 5e-5,
+      "weight_decay": 0.01,
+      "lr_scheduler_type": "linear",
+      "seed": 3407,
+      "output_dir": "outputs",
+      "report_to": "none",
+      "optim": "adamw_8bit",
+      "logging_steps": 1,
+      "save_steps": 1000
+    },
+    "inference_config": {
+      "max_new_tokens": 125,
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "top_k": 64,
+      "do_sample": true
+    },
+    "saving_config": {
+      "save_local": true,
+      "save_16bit": false,
+      "save_4bit": false,
+      "save_lora": false,
+      "push_to_hub": true
+    },
+    "logging_config": {
+      "csv_log_enabled": true
+    }
+  }

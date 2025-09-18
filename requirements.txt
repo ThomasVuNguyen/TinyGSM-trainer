@@ -222,3 +222,7 @@ xformers==0.0.32.post2
 xxhash==3.5.0
 yarl==1.20.1
 zipp==3.23.0
+
+# Plotting dependencies for training metrics visualization
+matplotlib>=3.10.0
+pandas>=2.3.0

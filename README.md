@@ -56,6 +56,22 @@ Install python-dotenv for .env file support:
 pip install python-dotenv
 ```
 
+For training metrics visualization:
+```bash
+pip install matplotlib pandas
+```
+
+## Training Metrics Visualization
+
+The script automatically generates training plots when CSV logging is enabled:
+
+- **Loss over training steps**: Shows model learning progress
+- **Learning rate schedule**: Visualizes LR changes during training  
+- **Gradient norm**: Monitors gradient stability
+- **Combined progress view**: Loss and LR on same timeline
+
+The plot is saved as `training_metrics_plot.png` in the model directory and uploaded to Hugging Face Hub along with the model.
+
 ## Features
 
 - ✅ Command-line argument support
@@ -63,6 +79,7 @@ pip install python-dotenv
 - ✅ GTX 1050 Ti compatibility fixes
 - ✅ LoRA fine-tuning for memory efficiency
 - ✅ CSV logging for training metrics
+- ✅ Training metrics visualization (PNG plots)
 - ✅ Multiple model saving formats
 - ✅ Hugging Face Hub integration
 - ✅ Environment variable support

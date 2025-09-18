@@ -186,6 +186,148 @@ torch._dynamo.config.disable = True
 # CSV LOGGING CALLBACK
 # =============================================================================
 
+def generate_training_plot(csv_file_path, output_path=None):
+    """Generate training metrics plot from CSV file"""
+    try:
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+        from datetime import datetime
+        import os
+        
+        if not os.path.exists(csv_file_path):
+            print(f"Warning: CSV file not found at {csv_file_path}")
+            return None
+            
+        # Read CSV file
+        df = pd.read_csv(csv_file_path)
+        
+        if len(df) == 0:
+            print("Warning: CSV file is empty")
+            return None
+            
+        # Convert timestamp to datetime if it exists
+        if 'timestamp' in df.columns:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+        # Set up the plot with subplots
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+        fig.suptitle('Training Metrics', fontsize=16, fontweight='bold')
+        
+        # Plot 1: Loss over steps
+        if 'loss' in df.columns and 'step' in df.columns:
+            ax1.plot(df['step'], df['loss'], 'b-', linewidth=2, alpha=0.8)
+            ax1.set_xlabel('Training Step')
+            ax1.set_ylabel('Loss')
+            ax1.set_title('Training Loss')
+            ax1.grid(True, alpha=0.3)
+            ax1.set_ylim(bottom=0)
+        
+        # Plot 2: Learning Rate over steps
+        if 'learning_rate' in df.columns and 'step' in df.columns:
+            ax2.plot(df['step'], df['learning_rate'], 'g-', linewidth=2, alpha=0.8)
+            ax2.set_xlabel('Training Step')
+            ax2.set_ylabel('Learning Rate')
+            ax2.set_title('Learning Rate Schedule')
+            ax2.grid(True, alpha=0.3)
+            ax2.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))
+        
+        # Plot 3: Gradient Norm over steps
+        if 'grad_norm' in df.columns and 'step' in df.columns:
+            ax3.plot(df['step'], df['grad_norm'], 'r-', linewidth=2, alpha=0.8)
+            ax3.set_xlabel('Training Step')
+            ax3.set_ylabel('Gradient Norm')
+            ax3.set_title('Gradient Norm')
+            ax3.grid(True, alpha=0.3)
+            ax3.set_ylim(bottom=0)
+        
+        # Plot 4: Training Progress (Loss + Learning Rate on secondary y-axis)
+        if all(col in df.columns for col in ['loss', 'learning_rate', 'step']):
+            # Primary y-axis for loss
+            color = 'tab:blue'
+            ax4.set_xlabel('Training Step')
+            ax4.set_ylabel('Loss', color=color)
+            line1 = ax4.plot(df['step'], df['loss'], color=color, linewidth=2, alpha=0.8, label='Loss')
+            ax4.tick_params(axis='y', labelcolor=color)
+            ax4.set_ylim(bottom=0)
+            
+            # Secondary y-axis for learning rate
+            ax4_twin = ax4.twinx()
+            color = 'tab:green'
+            ax4_twin.set_ylabel('Learning Rate', color=color)
+            line2 = ax4_twin.plot(df['step'], df['learning_rate'], color=color, linewidth=2, alpha=0.8, label='Learning Rate')
+            ax4_twin.tick_params(axis='y', labelcolor=color)
+            ax4_twin.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))
+            
+            ax4.set_title('Training Progress')
+            ax4.grid(True, alpha=0.3)
+            
+            # Add legend
+            lines = line1 + line2
+            labels = [l.get_label() for l in lines]
+            ax4.legend(lines, labels, loc='upper right')
+        
+        # Adjust layout
+        plt.tight_layout()
+        
+        # Save plot
+        if output_path is None:
+            output_path = csv_file_path.replace('.csv', '_plot.png')
+        
+        plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
+        plt.close()
+        
+        print(f"Training plot saved to: {output_path}")
+        return output_path
+        
+    except ImportError as e:
+        print(f"Warning: Required plotting libraries not installed: {e}")
+        print("To enable plotting, install: pip install matplotlib pandas")
+        return None
+    except Exception as e:
+        print(f"Warning: Failed to generate training plot: {e}")
+        return None
+
+def upload_csv_to_hub(model_name, csv_file_path, hf_token):
+    """Upload CSV file to Hugging Face Hub repository"""
+    try:
+        from huggingface_hub import HfApi
+        import os
+        
+        if os.path.exists(csv_file_path):
+            api = HfApi()
+            api.upload_file(
+                path_or_fileobj=csv_file_path,
+                path_in_repo="training_metrics.csv",
+                repo_id=model_name,
+                token=hf_token
+            )
+            print(f"Training metrics CSV uploaded to {model_name}")
+        else:
+            print(f"Warning: CSV file not found at {csv_file_path}")
+    except Exception as e:
+        print(f"Warning: Failed to upload CSV file: {e}")
+
+def upload_plot_to_hub(model_name, plot_file_path, hf_token):
+    """Upload training plot PNG to Hugging Face Hub repository"""
+    try:
+        from huggingface_hub import HfApi
+        import os
+        
+        if os.path.exists(plot_file_path):
+            api = HfApi()
+            api.upload_file(
+                path_or_fileobj=plot_file_path,
+                path_in_repo="training_plot.png",
+                repo_id=model_name,
+                token=hf_token
+            )
+            print(f"Training plot uploaded to {model_name}")
+        else:
+            print(f"Warning: Plot file not found at {plot_file_path}")
+    except Exception as e:
+        print(f"Warning: Failed to upload plot file: {e}")
+
 class CSVMetricsCallback(TrainerCallback):
     """Callback to log training metrics to CSV file"""
     
@@ -423,6 +565,12 @@ print(f"Peak reserved memory for training = {used_memory_for_lora} GB.")
 print(f"Peak reserved memory % of max memory = {used_percentage} %.")
 print(f"Peak reserved memory for training % of max memory = {lora_percentage} %.")
 
+# Generate training plot if CSV logging was enabled
+plot_file_path = None
+if CSV_LOG_ENABLED and os.path.exists(CSV_LOG_FILE):
+    print("\nGenerating training metrics plot...")
+    plot_file_path = generate_training_plot(CSV_LOG_FILE)
+
 # @title Show CSV metrics summary
 if CSV_LOG_ENABLED and csv_callback and csv_callback.metrics_data:
     print("\n" + "="*50)
@@ -506,6 +654,13 @@ if PUSH_TO_HUB and hf_token:
     model.push_to_hub(HUB_MODEL_NAME, token=hf_token)
     tokenizer.push_to_hub(HUB_MODEL_NAME, token=hf_token)
     print("Model and tokenizer uploaded to Hugging Face Hub")
+    
+    # Upload CSV file and plot if they exist
+    if CSV_LOG_ENABLED:
+        upload_csv_to_hub(HUB_MODEL_NAME, CSV_LOG_FILE, hf_token)
+        if plot_file_path:
+            upload_plot_to_hub(HUB_MODEL_NAME, plot_file_path, hf_token)
+        
 elif PUSH_TO_HUB and not hf_token:
     print("Warning: HF_TOKEN not found in .env file or environment variables.")
     print("To enable Hugging Face upload, add 'HF_TOKEN=your_token_here' to your .env file")
@@ -532,6 +687,13 @@ if SAVE_16BIT:
     if PUSH_TO_HUB and hf_token:
         model.push_to_hub_merged(f"{HUB_MODEL_NAME}-16bit", tokenizer, save_method="merged_16bit", token=hf_token)
         print("16-bit merged model uploaded to Hugging Face Hub")
+        
+        # Upload CSV file and plot if they exist
+        if CSV_LOG_ENABLED:
+            upload_csv_to_hub(f"{HUB_MODEL_NAME}-16bit", CSV_LOG_FILE, hf_token)
+            if plot_file_path:
+                upload_plot_to_hub(f"{HUB_MODEL_NAME}-16bit", plot_file_path, hf_token)
+            
     elif PUSH_TO_HUB and not hf_token:
         print("Warning: HF_TOKEN not found in .env file. Skipping 16-bit model upload to Hugging Face.")
 
@@ -541,6 +703,13 @@ if SAVE_4BIT:
     if PUSH_TO_HUB and hf_token:
         model.push_to_hub_merged(f"{HUB_MODEL_NAME}-4bit", tokenizer, save_method="merged_4bit", token=hf_token)
         print("4-bit merged model uploaded to Hugging Face Hub")
+        
+        # Upload CSV file and plot if they exist
+        if CSV_LOG_ENABLED:
+            upload_csv_to_hub(f"{HUB_MODEL_NAME}-4bit", CSV_LOG_FILE, hf_token)
+            if plot_file_path:
+                upload_plot_to_hub(f"{HUB_MODEL_NAME}-4bit", plot_file_path, hf_token)
+            
     elif PUSH_TO_HUB and not hf_token:
         print("Warning: HF_TOKEN not found in .env file. Skipping 4-bit model upload to Hugging Face.")
 
@@ -552,6 +721,12 @@ if SAVE_LORA:
         model.push_to_hub(f"{HUB_MODEL_NAME}-lora", token=hf_token)
         tokenizer.push_to_hub(f"{HUB_MODEL_NAME}-lora", token=hf_token)
         print("LoRA adapters uploaded to Hugging Face Hub")
+        
+        # Upload CSV file and plot if they exist
+        if CSV_LOG_ENABLED:
+            upload_csv_to_hub(f"{HUB_MODEL_NAME}-lora", CSV_LOG_FILE, hf_token)
+            if plot_file_path:
+                upload_plot_to_hub(f"{HUB_MODEL_NAME}-lora", plot_file_path, hf_token)
 
 print("\n" + "="*60)
 print("FINE-TUNING COMPLETED SUCCESSFULLY!")
